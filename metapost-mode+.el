@@ -23,16 +23,7 @@
 ;;
 ;;     (require 'metapost-mode+)
 ;;
-;; into your `user-init-file' should be enough.  If the images are too small or
-;; too big you should set the "-rXXX" option in `doc-view-ghostscript-options'
-;; to another value.  (The bigger your screen, the higher the value.)
-;;
-;; This and all other options can be set with the customization interface.
-;; Simply do
-;;
-;;     M-x customize-group RET doc-view RET
-;;
-;; and modify them to your needs.
+;; into your `user-init-file' should be enough.
 
 ;;; Code:
 
@@ -74,9 +65,23 @@
 
 (defun metapost-prepare-preview-buffer (buffer-name)
   (let* ((old-buffer (get-buffer (concat "* Metapost-preview: " buffer-name " *"))))
-    (and old-buffer
-         (quit-window t old-buffer)))
-  (get-buffer-create (concat "* Metapost-preview: " buffer-name " *")))
+    (if old-buffer
+         (kill-buffer old-buffer))
+  (get-buffer-create (concat "* Metapost-preview: " buffer-name " *"))))
+
+(defun metapost-locate-figure-no ()
+  ;;(interactive)
+  (let* ((beginfig-pattern "beginfig(\\(.+\\))")
+         (old-point (point)))
+    (re-search-backward beginfig-pattern nil t 1)
+    (if (and (match-beginning 1)
+             (match-end 1))
+        (progn (goto-char old-point)
+               (buffer-substring-no-properties (match-beginning 1) (match-end 1))))))
+
+(defun metapost-test ()
+  (interactive)
+  (message (metapost-locate-figure-no)))
 
 (defun metapost-preview ()
   "View current figure."
@@ -85,7 +90,7 @@
          (curbuf-fname (shell-quote-argument buffer-file-name))
          (curbuf-fname-nodir (file-name-sans-extension (file-name-nondirectory curbuf-fname)))
          (curbuf-dir (file-name-directory curbuf-fname))
-         (curbuf-figure-name (concat curbuf-fname-nodir ".1"))
+         (curbuf-figure-name (concat curbuf-fname-nodir "." (metapost-locate-figure-no)))
          (preview-buffer (metapost-prepare-preview-buffer (file-name-nondirectory curbuf-fname))))
     (if (= 0 (call-process prog-epstopdf
                            curbuf-figure-name
