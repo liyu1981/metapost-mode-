@@ -36,19 +36,29 @@
 
 ;;; Code:
 
+;;(require 'metapost-mode)
 (require 'doc-view)
 
 ;;;; Customization Options
 
 ;;;; Internal Variables
 
+(defvar metapost-mode+-prog-mpost
+  (executable-find "mpost")
+  "The mpost executable path.")
+
+(defvar metapost-mode+-prog-epstopdf
+  (executable-find "epstopdf")
+  "The epstopdf executable path.")
+
+(defvar metapost-mode+-current-source-buffer
+  "The working source buffer.")
+
 ;;;; metapost-mode+ Keymap
 
-(defvar metapost-mode+-map
-  (let ((map (make-sparse-keymap)))
-    (suppress-keymap map)
-    map)
-  "Keymap used by `metapost-mode+'.")
+(add-hook 'metapost-mode-hook
+          (lambda ()
+            (define-key meta-mode-map "\C-c\C-c" 'metapost-next)))
 
 ;;;;
 
@@ -56,33 +66,38 @@
   "Compile current buffer with Metapost."
   ;; (interactive)
   (setq curbuf-fname (shell-quote-argument buffer-file-name))
-  (call-process "mpost"
+  (call-process metapost-mode+-prog-mpost
                 nil
-                (concat "*Metapost:" (file-name-nondirectory curbuf-fname) "*")
+                (concat "*Metapost:" (file-name-nondirectory curbuf-fname) " *")
                 nil
                 curbuf-fname))
 
-;; (message (concat "Metapost compiled " curbuf-fname " successfully."))
-;; (message (concat "Metapost compile of " curbuf-fname " FAILED.")))
+(defun metapost-prepare-preview-buffer (buffer-name)
+  (let* ((old-buffer (get-buffer (concat "* Metapost-preview: " buffer-name " *"))))
+    (and old-buffer
+         (quit-window t old-buffer)))
+  (get-buffer-create (concat "* Metapost-preview: " buffer-name " *")))
 
-(defun metapost-doc-view ()
+(defun metapost-preview ()
   "View current figure."
   ;; (interactive)
-  (let* ((prog-epstopdf "epstopdf")
+  (let* ((prog-epstopdf metapost-mode+-prog-epstopdf)
          (curbuf-fname (shell-quote-argument buffer-file-name))
          (curbuf-fname-nodir (file-name-sans-extension (file-name-nondirectory curbuf-fname)))
          (curbuf-dir (file-name-directory curbuf-fname))
          (curbuf-figure-name (concat curbuf-fname-nodir ".1"))
-         (preview-buffer (get-buffer-create (concat "* Metapost-preview: " curbuf-fname-nodir "*"))))
+         (preview-buffer (metapost-prepare-preview-buffer (file-name-nondirectory curbuf-fname))))
     (if (= 0 (call-process prog-epstopdf
                            curbuf-figure-name
                            preview-buffer
                            nil
                            ;; args
                            "-f"))
-        (progn (switch-to-buffer-other-window preview-buffer)
+        (progn (setq metapost-mode+-current-source-buffer (current-buffer)) 
+               (switch-to-buffer-other-window preview-buffer)
                (set-buffer-file-coding-system 'raw-text)
-               (doc-view-mode)))))
+               (doc-view-mode)
+               (switch-to-buffer-other-window metapost-mode+-current-source-buffer)))))
 
 (defun metapost-next ()
   (interactive)
@@ -90,9 +105,5 @@
           (and (buffer-modified-p)
                (y-or-n-p (format "Save %s to preview the figure?" (buffer-file-name)))))
       (if (metapost-compile-buffer)
-          (metapost-doc-view)
+          (metapost-preview)
         (message (concat "Metapost compile of " curbuf-fname " FAILED.")))))
-
-(add-hook 'metapost-mode-hook
-          (lambda ()
-            (define-key meta-mode-map "\C-c\C-c" 'metapost-next)))
