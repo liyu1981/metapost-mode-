@@ -86,12 +86,19 @@
   ;;(interactive)
   (let* ((beginfig-pattern "beginfig\\([ \t]*\\)(\\(.*\\))")
          (old-point (point)))
+    ;; first we assume already inside some figure's body
     (re-search-backward beginfig-pattern nil t 1)
-    (if (and (match-beginning 2)
-             (match-end 2))
-        (progn (goto-char old-point)
-               (metapost-mode+-strchomp
-                (buffer-substring-no-properties (match-beginning 2) (match-end 2)))))))
+    (let* ((figure-no-start (match-beginning 2))
+           (figure-no-end (match-end 2)))
+      (if (not (and figure-no-start figure-no-end))
+          ;; now try forward, may be at the begining of file
+          (progn (re-search-forward beginfig-pattern nil t 1)
+                 (setq figure-no-start (match-beginning 2))
+                 (setq figure-no-end (match-end 2))))
+      (if (and figure-no-start figure-no-end)
+          (progn (goto-char old-point)
+                 (metapost-mode+-strchomp
+                  (buffer-substring-no-properties (match-beginning 2) (match-end 2))))))))
 
 (defun metapost-test ()
   (interactive)
