@@ -53,6 +53,12 @@
 (defvar metapost-mode+-current-source-buffer
   "The working source buffer.")
 
+(defvar metapost-mode+-temporary-mp-sh
+  (expand-file-name (format "mpm+mp%d.sh" (user-uid))
+                    temporary-file-directory)
+  "The temporary shell script will be used with a latex label
+enabled metapost figure.")
+
 ;;;; metapost-mode+ Keymap
 
 (add-hook 'metapost-mode-hook
@@ -61,20 +67,55 @@
 
 ;;;;
 
+(defun metapost-test ()
+  (interactive)
+  (message (metapost-detect-latex-mode)))
+
 (defun metapost-mode+-strchomp (str)
   "Chomp leading and tailing whitespace from STR."
   (let ((s (if (symbolp str) (symbol-name str) str)))
     (replace-regexp-in-string "\\(^[[:space:]\n]*\\|[[:space:]\n]*$\\)" "" s)))
 
+(defun metapost-detect-latex-mode ()
+  (let* ((old-point (point))
+         (latex-pattern "%&latex")
+         (detected nil))
+    (goto-char 0)
+    (setq detected (search-forward latex-pattern nil t))
+    (goto-char old-point)
+    (if detected t nil)))
+
+(defun metapost-prepare-command (latex-mode)
+  (if latex-mode
+      ;; latex is tough, so we turn to generate a temporary shell script
+      (let* ((curbuf-dir (file-name-directory (expand-file-name buffer-file-name)))
+             (curbuf-fname (file-name-nondirectory (expand-file-name buffer-file-name))))
+        (with-temp-buffer
+          (insert-string "#!/bin/sh\n")
+          (insert-string (format "cd %s\n" curbuf-dir))
+          (insert-string (format "mpost %s\n" curbuf-fname))
+          (write-file metapost-mode+-temporary-mp-sh))
+        (call-process-shell-command "chmod" nil nil nil "+x" metapost-mode+-temporary-mp-sh)
+        metapost-mode+-temporary-mp-sh)
+      ;; otherwise, just mpost should do the trick
+      metapost-mode+-prog-mpost))
+
 (defun metapost-compile-buffer ()
   "Compile current buffer with Metapost."
-  ;; (interactive)
-  (setq curbuf-fname (shell-quote-argument buffer-file-name))
-  (call-process metapost-mode+-prog-mpost
-                nil
-                (concat "*Metapost:" (file-name-nondirectory curbuf-fname) " *")
-                nil
-                curbuf-fname))
+  (let* ((curbuf-fname (shell-quote-argument buffer-file-name))
+         (output-buffer (concat "*Metapost:" (file-name-nondirectory curbuf-fname) " *"))
+         (latex-mode (metapost-detect-latex-mode))
+         (sh-cmd (metapost-prepare-command latex-mode)))
+    (if latex-mode
+        ;; latex-mode, tough, go to call shell-command
+        (progn (let* ((old-resize-mini-windows resize-mini-windows))
+                 (setq resize-mini-windows nil)
+                 (shell-command sh-cmd output-buffer)
+                 (setq resize-mini-windows old-resize-mini-windows))
+               ;; FIXME: there need some error handling
+               t)
+        ;; otherwise we could just call-process
+        (call-process sh-cmd nil output-buffer nil curbuf-fname))))
 
 (defun metapost-prepare-preview-buffer (buffer-name)
   (let* ((old-buffer (get-buffer (concat "* Metapost-preview: " buffer-name " *"))))
@@ -99,10 +140,6 @@
           (progn (goto-char old-point)
                  (metapost-mode+-strchomp
                   (buffer-substring-no-properties (match-beginning 2) (match-end 2))))))))
-
-(defun metapost-test ()
-  (interactive)
-  (message (metapost-locate-figure-no)))
 
 (defun metapost-preview ()
   "View current figure."
