@@ -101,9 +101,9 @@ enabled metapost figure.")
       metapost-mode+-prog-mpost))
 
 (defun metapost-compile-buffer ()
-  "Compile current buffer with Metapost."
+  "Compile current buffer with metapost."
   (let* ((curbuf-fname (shell-quote-argument buffer-file-name))
-         (output-buffer (concat "*Metapost:" (file-name-nondirectory curbuf-fname) " *"))
+         (output-buffer (concat "*metapost:" (file-name-nondirectory curbuf-fname) " *"))
          (latex-mode (metapost-detect-latex-mode))
          (sh-cmd (metapost-prepare-command latex-mode)))
     (if latex-mode
@@ -118,10 +118,10 @@ enabled metapost figure.")
         (call-process sh-cmd nil output-buffer nil curbuf-fname))))
 
 (defun metapost-prepare-preview-buffer (buffer-name)
-  (let* ((old-buffer (get-buffer (concat "* Metapost-preview: " buffer-name " *"))))
+  (let* ((old-buffer (get-buffer (concat "* metapost-preview: " buffer-name " *"))))
     (if old-buffer
          (kill-buffer old-buffer))
-  (get-buffer-create (concat "* Metapost-preview: " buffer-name " *"))))
+  (get-buffer-create (concat "* metapost-preview: " buffer-name " *"))))
 
 (defun metapost-locate-figure-no ()
   ;;(interactive)
@@ -174,6 +174,6 @@ enabled metapost figure.")
   (if ok-to-preview
       (if (metapost-compile-buffer)
           (metapost-preview)
-        (message (concat "Metapost compile of " curbuf-fname " FAILED.")))))
+        (message (concat "metapost compile of " curbuf-fname " FAILED.")))))
 
 ;;; metapost-mode+.el ends here
