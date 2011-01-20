@@ -54,6 +54,11 @@
 
 ;;;;
 
+(defun metapost-mode+-strchomp (str)
+  "Chomp leading and tailing whitespace from STR."
+  (let ((s (if (symbolp str) (symbol-name str) str)))
+    (replace-regexp-in-string "\\(^[[:space:]\n]*\\|[[:space:]\n]*$\\)" "" s)))
+
 (defun metapost-compile-buffer ()
   "Compile current buffer with Metapost."
   ;; (interactive)
@@ -72,13 +77,14 @@
 
 (defun metapost-locate-figure-no ()
   ;;(interactive)
-  (let* ((beginfig-pattern "beginfig(\\(.+\\))")
+  (let* ((beginfig-pattern "beginfig\\([ \t]*\\)(\\(.*\\))")
          (old-point (point)))
     (re-search-backward beginfig-pattern nil t 1)
-    (if (and (match-beginning 1)
-             (match-end 1))
+    (if (and (match-beginning 2)
+             (match-end 2))
         (progn (goto-char old-point)
-               (buffer-substring-no-properties (match-beginning 1) (match-end 1))))))
+               (metapost-mode+-strchomp
+                (buffer-substring-no-properties (match-beginning 2) (match-end 2)))))))
 
 (defun metapost-test ()
   (interactive)
@@ -109,9 +115,12 @@
 
 (defun metapost-next ()
   (interactive)
-  (if (or (not (buffer-modified-p))
-          (and (buffer-modified-p)
-               (y-or-n-p (format "Save %s to preview the figure?" (buffer-file-name)))))
+  (setq ok-to-preview t)
+  (if (buffer-modified-p)
+      (if (y-or-n-p (format "Save %s to preview the figure?" (buffer-file-name)))
+          (save-buffer)
+        (setq ok-to-preview nil)))
+  (if ok-to-preview
       (if (metapost-compile-buffer)
           (metapost-preview)
         (message (concat "Metapost compile of " curbuf-fname " FAILED.")))))
