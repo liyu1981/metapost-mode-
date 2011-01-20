@@ -53,4 +53,8 @@ beginfig(1)
   label.ulft(btex \cyr C\char24 rih, 08.09.2002 etex, (breite, 0));   
 endfig;
 
+verbatimtex
+\end{document}
+etex
+  
 end
