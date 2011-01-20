@@ -3,15 +3,16 @@
 ;; Author: Yu LI <liyu1981@gmail.com>
 ;; Maintainer: Yu LI <liyu1981@gmail.com>
 ;; Keywords: metapost
-;; Version: <2007-10-06 Sat 16:14>
+;; Version: 0.1
+;; Compatibility: GNU Emacs 23.2 ~ newer
 
 ;; This file is NOT part of GNU Emacs. 
-;; This file is licensed under GPLv2.
+;; This file is licensed under GPLv3.
 
 ;;; Requirements:
 
-;; metapost-mode.el and doc-view.el, which are part of GNU Emacs 22.1
-;; or newer.  You also need `epstopdf', which comes with TeXLive
+;; metapost-mode.el and doc-view.el, which are part of GNU Emacs 23.2
+;; or newer.  You also need `epstopdf', which comes with TexLive.
 
 ;;; Commentary:
 
@@ -101,6 +102,8 @@
         (progn (setq metapost-mode+-current-source-buffer (current-buffer)) 
                (switch-to-buffer-other-window preview-buffer)
                (set-buffer-file-coding-system 'raw-text)
+               (set-buffer-modified-p nil)
+               (toggle-read-only)
                (doc-view-mode)
                (switch-to-buffer-other-window metapost-mode+-current-source-buffer)))))
 
@@ -112,3 +115,5 @@
       (if (metapost-compile-buffer)
           (metapost-preview)
         (message (concat "Metapost compile of " curbuf-fname " FAILED.")))))
+
+;;; metapost-mode+.el ends here
