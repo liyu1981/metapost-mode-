@@ -9,13 +9,20 @@
 ;; This file is NOT part of GNU Emacs. 
 ;; This file is licensed under GPLv3.
 
+;;; Version History
+
+;; v0.1 -- Init version with initial features :)
+
+;;; ToDo List
+
+;; - /test/LaTeXLabels.mp not work.
+
 ;;; Requirements:
 
 ;; metapost-mode.el and doc-view.el, which are part of GNU Emacs 23.2
 ;; or newer.  You also need `epstopdf', which comes with TexLive.
 
 ;;; Commentary:
-
 
 ;;; Configuration:
 
