@@ -86,37 +86,15 @@ enabled metapost figure.")
     (if detected t nil)))
 
 (defun metapost-prepare-command (latex-mode)
-  (if latex-mode
-      ;; latex is tough, so we turn to generate a temporary shell script
-      (let* ((curbuf-dir (file-name-directory (expand-file-name buffer-file-name)))
-             (curbuf-fname (file-name-nondirectory (expand-file-name buffer-file-name))))
-        (with-temp-buffer
-          (insert-string "#!/bin/sh\n")
-          (insert-string (format "cd %s\n" curbuf-dir))
-          (insert-string (format "mpost %s\n" curbuf-fname))
-          (write-file metapost-mode+-temporary-mp-sh))
-        (call-process-shell-command "chmod" nil nil nil "+x" metapost-mode+-temporary-mp-sh)
-        metapost-mode+-temporary-mp-sh)
-      ;; otherwise, just mpost should do the trick
-      metapost-mode+-prog-mpost))
+      metapost-mode+-prog-mpost)
 
 (defun metapost-compile-buffer ()
   "Compile current buffer with metapost."
-  (let* ((curbuf-fname (shell-quote-argument buffer-file-name))
-         (output-buffer (concat "*metapost:" (file-name-nondirectory curbuf-fname) " *"))
+  (let* ((curbuf-fname (shell-quote-argument (file-name-nondirectory buffer-file-name)))
+         (output-buffer (concat "*metapost:" curbuf-fname " *"))
          (latex-mode (metapost-detect-latex-mode))
          (sh-cmd (metapost-prepare-command latex-mode)))
-    (if latex-mode
-        ;; latex-mode, tough, go to call shell-command
-        ;; (progn (let* ((old-resize-mini-windows resize-mini-windows))
-        ;;          (setq resize-mini-windows nil)
-        ;;          (shell-command sh-cmd output-buffer)
-        ;;          (setq resize-mini-windows old-resize-mini-windows))
-        ;;        ;; FIXME: there need some error handling
-        ;;        t)
-        (call-process "mpost" nil output-buffer nil (shell-quote-argument (file-name-nondirectory buffer-file-name)))
-        ;; otherwise we could just call-process
-        (call-process sh-cmd nil output-buffer nil curbuf-fname))))
+        (call-process sh-cmd nil output-buffer nil curbuf-fname)))
 
 (defun metapost-prepare-preview-buffer (buffer-name)
   (let* ((old-buffer (get-buffer (concat "* metapost-preview: " buffer-name " *"))))
@@ -146,11 +124,13 @@ enabled metapost figure.")
   "View current figure."
   ;; (interactive)
   (let* ((prog-epstopdf metapost-mode+-prog-epstopdf)
-         (curbuf-fname (shell-quote-argument buffer-file-name))
-         (curbuf-fname-nodir (file-name-sans-extension (file-name-nondirectory curbuf-fname)))
-         (curbuf-dir (file-name-directory curbuf-fname))
-         (curbuf-figure-name (concat curbuf-fname-nodir "." (metapost-locate-figure-no)))
-         (preview-buffer (metapost-prepare-preview-buffer (file-name-nondirectory curbuf-fname))))
+         (curbuf-fname-full (shell-quote-argument buffer-file-name))
+         (curbuf-fname-nodirext
+          (file-name-sans-extension (file-name-nondirectory curbuf-fname-full)))
+         (curbuf-dir (file-name-directory curbuf-fname-full))
+         (curbuf-figure-name (concat curbuf-fname-nodirext "." (metapost-locate-figure-no)))
+         (preview-buffer
+          (metapost-prepare-preview-buffer (file-name-nondirectory curbuf-fname-full))))
     (if (= 0 (call-process prog-epstopdf
                            curbuf-figure-name
                            preview-buffer
