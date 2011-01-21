@@ -1,6 +1,7 @@
+prologues:=3;
 verbatimtex
 %&latex
-\documentclass{article}
+\documentclass{minimal}
 \newcommand{\uB}{\upshape{B\'ezier}}   % up: upright
 \newcommand{\iB}{\itshape{B\'ezier}}   % it: italic
 \newcommand{\lB}{\slshape{B\'ezier}}   % sl: slanted
@@ -52,9 +53,5 @@ beginfig(1)
   
   label.ulft(btex \cyr C\char24 rih, 08.09.2002 etex, (breite, 0));   
 endfig;
-
-verbatimtex
-\end{document}
-etex
   
 end
