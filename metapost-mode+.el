@@ -64,6 +64,7 @@
 
 ;;;; metapost-mode+ Keymap
 
+;;;###autoload
 (add-hook 'metapost-mode-hook
           (lambda ()
             (define-key meta-mode-map "\C-c\C-c" 'metapost-next)
@@ -112,6 +113,11 @@
     (get-buffer-create buffer-string)))
 
 (defun metapost-locate-figure-no ()
+  "This function will locate which figure's body your cursor is
+in, and return it as the figure no next to be previewed. If your
+cursor is out of any figure's body, such as in the
+begining/ending of .mp file, it will return the first/last
+figure."
   ;;(interactive)
   (let* ((beginfig-pattern "beginfig\\([ \t]*\\)(\\(.*\\))")
          (old-point (point)))
@@ -130,7 +136,8 @@
                   (buffer-substring-no-properties (match-beginning 2) (match-end 2))))))))
 
 (defun metapost-preview ()
-  "View current figure."
+  "View current figure by first using ``epstopdf'' to convert it
+to pdf, and then turn on ``doc-view-mode'' to show it."
   ;; (interactive)
   (let* ((prog-epstopdf metapost-mode+-prog-epstopdf)
          (curbuf-fname-full (shell-quote-argument buffer-file-name))
@@ -161,6 +168,15 @@
                (switch-to-buffer-other-window metapost-mode+-current-source-buffer)))))
 
 (defun metapost-next ()
+  "The universal command to compile and preview the editing .mp file.
+It will do following things one by one: (1) if it detected that
+the editing .mp file is modified, it will ask to save the
+file; (2) try to compile it; (3) upon the success of
+compiliation, try to convert the figure from eps to pdf and use
+doc-view-mode to show it.
+
+The preview figure is smartly deteced by
+``metapost-locate-figure-no''."
   (interactive)
   (setq ok-to-preview t)
   (if (buffer-modified-p)
@@ -177,6 +193,10 @@
                            (file-name-nondirectory buffer-file-name)))))))
 
 (defun metapost-next-error ()
+  "This command will try to find the first emergency stop in the
+output of last compliation of editing .mp file, extract the error
+infomation (i.e., error line no), and move your cursor to the
+error location."
   (interactive)
   (if metapost-mode+-last-compiliation-failed
       (let* ((mp-output-buffer
