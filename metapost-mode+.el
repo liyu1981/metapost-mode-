@@ -53,12 +53,6 @@
 (defvar metapost-mode+-current-source-buffer
   "The working source buffer.")
 
-(defvar metapost-mode+-temporary-mp-sh
-  (expand-file-name (format "mpm+mp%d.sh" (user-uid))
-                    temporary-file-directory)
-  "The temporary shell script will be used with a latex label
-enabled metapost figure.")
-
 ;;;; metapost-mode+ Keymap
 
 (add-hook 'metapost-mode-hook
@@ -90,17 +84,20 @@ enabled metapost figure.")
 
 (defun metapost-compile-buffer ()
   "Compile current buffer with metapost."
-  (let* ((curbuf-fname (shell-quote-argument (file-name-nondirectory buffer-file-name)))
-         (output-buffer (concat "*metapost:" curbuf-fname " *"))
+  (let* ((curbuf-fname (file-name-nondirectory (shell-quote-argument buffer-file-name)))
+         (output-buffer (concat "*metapost:" curbuf-fname "*"))
          (latex-mode (metapost-detect-latex-mode))
          (sh-cmd (metapost-prepare-command latex-mode)))
         (call-process sh-cmd nil output-buffer nil curbuf-fname)))
 
-(defun metapost-prepare-preview-buffer (buffer-name)
-  (let* ((old-buffer (get-buffer (concat "* metapost-preview: " buffer-name " *"))))
+(defun metapost-prepare-buffer (buffer-name &optional buffer-name-format)
+  (let* ((buffer-string (if buffer-name-format
+                            (format buffer-name-format buffer-name)
+                             buffer-name))
+         (old-buffer (get-buffer buffer-string)))
     (if old-buffer
-         (kill-buffer old-buffer))
-  (get-buffer-create (concat "* metapost-preview: " buffer-name " *"))))
+        (kill-buffer old-buffer))
+    (get-buffer-create buffer-string)))
 
 (defun metapost-locate-figure-no ()
   ;;(interactive)
@@ -130,16 +127,22 @@ enabled metapost figure.")
          (curbuf-dir (file-name-directory curbuf-fname-full))
          (curbuf-figure-name (concat curbuf-fname-nodirext "." (metapost-locate-figure-no)))
          (preview-buffer
-          (metapost-prepare-preview-buffer (file-name-nondirectory curbuf-fname-full))))
-    (if (= 0 (call-process prog-epstopdf
-                           curbuf-figure-name
-                           preview-buffer
-                           nil
-                           ;; args
-                           "-f"))
+          (metapost-prepare-buffer (file-name-nondirectory curbuf-fname-full)
+                                   "*metapost-preview: %s*"))
+         (preview-error-buffer
+          (metapost-prepare-buffer (file-name-nondirectory curbuf-fname-full)
+                                   "*metapost-preview-error: %s*")))
+    (if (= 0 (let* ((coding-system-for-read 'raw-text)
+                    (coding-system-for-write 'raw-text))
+               (call-process prog-epstopdf
+                             curbuf-figure-name
+                             preview-buffer
+                             preview-error-buffer
+                             ;; args
+                             "-f")))
         (progn (setq metapost-mode+-current-source-buffer (current-buffer)) 
                (switch-to-buffer-other-window preview-buffer)
-               (set-buffer-file-coding-system 'raw-text)
+               (set-buffer-file-coding-system 'no-conversion)
                (set-buffer-modified-p nil)
                (toggle-read-only)
                (doc-view-mode)
