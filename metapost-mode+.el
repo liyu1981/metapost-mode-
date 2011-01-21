@@ -11,11 +11,14 @@
 
 ;;; Version History
 
+;; v0.2 -- metapost with LaTeX now works. With inspriation from Troy
+;;         Henderson's web-based Metapost Previewer
+;;         (http://www.tlhiv.org/mppreview/)
 ;; v0.1 -- Init version with initial features :)
 
 ;;; ToDo List
 
-;; - /test/LaTeXLabels.mp not work.
+;; - 
 
 ;;; Requirements:
 
