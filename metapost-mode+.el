@@ -108,12 +108,13 @@ enabled metapost figure.")
          (sh-cmd (metapost-prepare-command latex-mode)))
     (if latex-mode
         ;; latex-mode, tough, go to call shell-command
-        (progn (let* ((old-resize-mini-windows resize-mini-windows))
-                 (setq resize-mini-windows nil)
-                 (shell-command sh-cmd output-buffer)
-                 (setq resize-mini-windows old-resize-mini-windows))
-               ;; FIXME: there need some error handling
-               t)
+        ;; (progn (let* ((old-resize-mini-windows resize-mini-windows))
+        ;;          (setq resize-mini-windows nil)
+        ;;          (shell-command sh-cmd output-buffer)
+        ;;          (setq resize-mini-windows old-resize-mini-windows))
+        ;;        ;; FIXME: there need some error handling
+        ;;        t)
+        (call-process "mpost" nil output-buffer nil (shell-quote-argument (file-name-nondirectory buffer-file-name)))
         ;; otherwise we could just call-process
         (call-process sh-cmd nil output-buffer nil curbuf-fname))))
 
