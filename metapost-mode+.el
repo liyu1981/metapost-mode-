@@ -18,7 +18,7 @@
 
 ;;; ToDo List
 
-;; - 
+;; - Error detection and notification after compiling .mp file.
 
 ;;; Requirements:
 
