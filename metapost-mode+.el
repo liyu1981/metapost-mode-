@@ -11,14 +11,16 @@
 
 ;;; Version History
 
-;; v0.2 -- metapost with LaTeX now works. With inspriation from Troy
+;; v0.1.2 -- Error detection and notification after compiling .mp file.
+;;         And C-c ` to jump to the error location.
+;; v0.1.1 -- metapost with LaTeX now works. With inspriation from Troy
 ;;         Henderson's web-based Metapost Previewer
 ;;         (http://www.tlhiv.org/mppreview/)
-;; v0.1 -- Init version with initial features :)
+;; v0.1.0 -- Init version with initial features :)
 
 ;;; ToDo List
 
-;; - Error detection and notification after compiling .mp file.
+;; - 
 
 ;;; Requirements:
 
@@ -56,17 +58,24 @@
 (defvar metapost-mode+-current-source-buffer
   "The working source buffer.")
 
+(defvar metapost-mode+-last-compiliation-failed
+  nil
+  "The variable indicates whether last compiliation is failed.")
+
 ;;;; metapost-mode+ Keymap
 
 (add-hook 'metapost-mode-hook
           (lambda ()
-            (define-key meta-mode-map "\C-c\C-c" 'metapost-next)))
+            (define-key meta-mode-map "\C-c\C-c" 'metapost-next)
+            (define-key meta-mode-map "\C-c`" 'metapost-next-error)))
 
 ;;;;
 
 (defun metapost-test ()
   (interactive)
-  (message (metapost-detect-latex-mode)))
+  (if (= 0 (metapost-compile-buffer))
+      (message "Succeed!")
+    (message "Failed")))
 
 (defun metapost-mode+-strchomp (str)
   "Chomp leading and tailing whitespace from STR."
@@ -88,7 +97,7 @@
 (defun metapost-compile-buffer ()
   "Compile current buffer with metapost."
   (let* ((curbuf-fname (file-name-nondirectory (shell-quote-argument buffer-file-name)))
-         (output-buffer (concat "*metapost:" curbuf-fname "*"))
+         (output-buffer (concat "*metapost: " curbuf-fname "*"))
          (latex-mode (metapost-detect-latex-mode))
          (sh-cmd (metapost-prepare-command latex-mode)))
         (call-process sh-cmd nil output-buffer nil curbuf-fname)))
@@ -159,8 +168,40 @@
           (save-buffer)
         (setq ok-to-preview nil)))
   (if ok-to-preview
-      (if (metapost-compile-buffer)
+      (if (= 0 (let* ((metapost-mode+-last-compiliation-failed nil))
+                 (metapost-compile-buffer)))
           (metapost-preview)
-        (message (concat "metapost compile of " curbuf-fname " FAILED.")))))
+        (progn 
+          (setq metapost-mode+-last-compiliation-failed t)
+          (message (format "metapost: compile of %s failed. C-c ` to jump to error"
+                           (file-name-nondirectory buffer-file-name)))))))
+
+(defun metapost-next-error ()
+  (interactive)
+  (if metapost-mode+-last-compiliation-failed
+      (let* ((mp-output-buffer
+              (concat "*metapost: " (file-name-nondirectory (shell-quote-argument buffer-file-name)) "*"))
+             (mp-output-begin-pattern "This is MetaPost.*")
+             (mp-output-error-begin-pattern "! Emergency stop.")
+             (mp-output-error-line-pattern "l\.\\([[:digit:]]+\\)")
+             (old-buffer (current-buffer)))
+        (switch-to-buffer mp-output-buffer)
+        (end-of-buffer)
+        (if (re-search-backward mp-output-begin-pattern nil t 1)
+            (if (re-search-forward mp-output-error-begin-pattern nil t 1)
+                (progn (re-search-forward mp-output-error-line-pattern nil t 1)
+                       (let* ((error-line-start (match-beginning 1))
+                              (error-line-end (match-end 1)))
+                         (if (and error-line-start error-line-end)
+                             (let* ((line-no
+                                     (string-to-int
+                                      (metapost-mode+-strchomp (buffer-substring error-line-start error-line-end)))))
+                               (switch-to-buffer old-buffer)
+                               (goto-line line-no)
+                               (switch-to-buffer-other-window mp-output-buffer)
+                               (switch-to-buffer-other-window old-buffer))
+                           (message "Oops! Somehow I failed to locate the error line, T_T."))))
+              (message "Oops! Seems that there is no error line given, weried *_^. "))
+          (message "Oops! Seems that the metapost compliation output has been messed up *_*. ")))))
 
 ;;; metapost-mode+.el ends here
