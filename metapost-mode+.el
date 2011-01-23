@@ -201,7 +201,9 @@ error location."
   (interactive)
   (if metapost-mode+-last-compiliation-failed
       (let* ((mp-output-buffer
-              (concat "*metapost: " (file-name-nondirectory (shell-quote-argument buffer-file-name)) "*"))
+              (concat
+               "*metapost: " (file-name-nondirectory
+                              (shell-quote-argument buffer-file-name)) "*"))
              (mp-output-begin-pattern "This is MetaPost.*")
              (mp-output-error-begin-pattern "! Emergency stop.")
              (mp-output-error-line-pattern "l\.\\([[:digit:]]+\\)")
@@ -216,7 +218,8 @@ error location."
                          (if (and error-line-start error-line-end)
                              (let* ((line-no
                                      (string-to-int
-                                      (metapost-mode+-strchomp (buffer-substring error-line-start error-line-end)))))
+                                      (metapost-mode+-strchomp
+                                       (buffer-substring error-line-start error-line-end)))))
                                (switch-to-buffer old-buffer)
                                (goto-line line-no)
                                (switch-to-buffer-other-window mp-output-buffer)
