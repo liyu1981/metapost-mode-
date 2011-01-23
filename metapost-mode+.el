@@ -20,7 +20,7 @@
 
 ;;; ToDo List
 
-;; - 
+;; - Detect the latex labels and prompt user to add latex label support
 
 ;;; Requirements:
 
@@ -68,6 +68,7 @@
 ;;;###autoload
 (add-hook 'metapost-mode-hook
           (lambda ()
+            (define-key meta-mode-map "\C-cl" 'metapost-insert-latex-header)
             (define-key meta-mode-map "\C-c\C-c" 'metapost-next)
             (define-key meta-mode-map "\C-c`" 'metapost-next-error)))
 
@@ -83,6 +84,16 @@
   "Chomp leading and tailing whitespace from STR."
   (let ((s (if (symbolp str) (symbol-name str) str)))
     (replace-regexp-in-string "\\(^[[:space:]\n]*\\|[[:space:]\n]*$\\)" "" s)))
+
+(defun metapost-insert-latex-header ()
+  "Insert the support snippet for LaTeX labels in the begining of
+the buffer."
+  (interactive)
+  (let* ((latex-snippet "prologues:=3;\nverbatimtex\n%&latex\n\\documentclass{minimal}\n\\begin{document}\netex\n\n")
+         (old-point (+ (point) (length latex-snippet))))
+    (goto-char 0)
+    (insert-string latex-snippet)
+    (goto-char old-point)))
 
 (defun metapost-detect-latex-mode ()
   (let* ((old-point (point))
