@@ -39,6 +39,7 @@
 ;; into your `user-init-file' should be enough.
 
 ;;; Code:
+(eval-when-compile (require 'doc-view))
 
 ;;(require 'metapost-mode)
 (require 'doc-view)
@@ -223,5 +224,9 @@ error location."
                            (message "Oops! Somehow I failed to locate the error line, T_T."))))
               (message "Oops! Seems that there is no error line given, weried *_^. "))
           (message "Oops! Seems that the metapost compliation output has been messed up *_*. ")))))
+
+;;;
+
+(provide 'metapost-mode+)
 
 ;;; metapost-mode+.el ends here
