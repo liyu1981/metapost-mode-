@@ -99,7 +99,7 @@
 (defun metapost-compile-buffer ()
   "Compile current buffer with metapost."
   (let* ((curbuf-fname (file-name-nondirectory (shell-quote-argument buffer-file-name)))
-         (output-buffer (concat "*metapost: " curbuf-fname "*"))
+         (output-buffer (metapost-prepare-buffer curbuf-fname "*metapost: %s*"))
          (latex-mode (metapost-detect-latex-mode))
          (sh-cmd (metapost-prepare-command latex-mode)))
         (call-process sh-cmd nil output-buffer nil curbuf-fname)))
