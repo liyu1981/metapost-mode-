@@ -75,6 +75,7 @@
           (lambda ()
             (define-key meta-mode-map "\C-cl" 'metapost-insert-latex-header)
             (define-key meta-mode-map "\C-cf" 'metapost-insert-figure-environment)
+            (define-key meta-mode-map "\C-ct" 'metapost-insert-tex-environment)
             (define-key meta-mode-map "\C-c\C-c" 'metapost-next)
             (define-key meta-mode-map "\C-c`" 'metapost-next-error)))
 
@@ -114,6 +115,14 @@ etex\n\n")
 endfig;\n\n")
         (insert-loc (+ (line-beginning-position) 9)))
    (beginning-of-line)
+   (insert-string metapost-snippet)
+   (goto-char insert-loc)))
+
+(defun metapost-insert-tex-environment ()
+ "Insert a tex environment of metapost."
+ (interactive)
+ (let* ((metapost-snippet "btex   etex")
+        (insert-loc (+ (point) 5)))
    (insert-string metapost-snippet)
    (goto-char insert-loc)))
 
