@@ -20,6 +20,7 @@
 
 ;;; ToDo List
 
+;; - Give some notification when result is empty figure
 ;; - Detect the latex labels and prompt user to add latex label support
 
 ;;; Requirements:
@@ -63,12 +64,17 @@
   nil
   "The variable indicates whether last compiliation is failed.")
 
+(defvar metapost-mode+-goto-next-error-auto
+  t
+  "Whether goto next error after a compliation failure.")
+
 ;;;; metapost-mode+ Keymap
 
 ;;;###autoload
 (add-hook 'metapost-mode-hook
           (lambda ()
             (define-key meta-mode-map "\C-cl" 'metapost-insert-latex-header)
+            (define-key meta-mode-map "\C-cf" 'metapost-insert-figure-environment)
             (define-key meta-mode-map "\C-c\C-c" 'metapost-next)
             (define-key meta-mode-map "\C-c`" 'metapost-next-error)))
 
@@ -89,11 +95,27 @@
   "Insert the support snippet for LaTeX labels in the begining of
 the buffer."
   (interactive)
-  (let* ((latex-snippet "prologues:=3;\nverbatimtex\n%&latex\n\\documentclass{minimal}\n\\begin{document}\netex\n\n")
+  (let* ((latex-snippet "prologues:=3;
+verbatimtex
+%&latex
+\\documentclass{minimal}
+\\begin{document}
+etex\n\n")
          (old-point (+ (point) (length latex-snippet))))
     (goto-char 0)
     (insert-string latex-snippet)
     (goto-char old-point)))
+
+(defun metapost-insert-figure-environment ()
+ "Insert a figure environment of metapost."
+ (interactive)
+ (let* ((metapost-snippet "beginfig()
+
+endfig;\n\n")
+        (insert-loc (+ (line-beginning-position) 9)))
+   (beginning-of-line)
+   (insert-string metapost-snippet)
+   (goto-char insert-loc)))
 
 (defun metapost-detect-latex-mode ()
   (let* ((old-point (point))
@@ -196,13 +218,21 @@ The preview figure is smartly deteced by
           (save-buffer)
         (setq ok-to-preview nil)))
   (if ok-to-preview
-      (if (= 0 (let* ((metapost-mode+-last-compiliation-failed nil))
-                 (metapost-compile-buffer)))
-          (metapost-preview)
-        (progn 
-          (setq metapost-mode+-last-compiliation-failed t)
-          (message (format "metapost: compile of %s failed. C-c ` to jump to error"
-                           (file-name-nondirectory buffer-file-name)))))))
+      (let* ((old-buffer (current-buffer)))
+        (if (= 0 (let* ((metapost-mode+-last-compiliation-failed nil))
+                   (metapost-compile-buffer)))
+            (progn (metapost-preview)
+                   (switch-to-buffer old-buffer))
+          (progn 
+            (switch-to-buffer old-buffer)
+            (setq metapost-mode+-last-compiliation-failed t)
+
+            (if metapost-mode+-goto-next-error-auto
+                (progn (message (format "metapost: compile of %s failed."
+                                        (file-name-nondirectory buffer-file-name)))
+                       (metapost-next-error))
+              (message (format "metapost: compile of %s failed. C-c ` to jump to error."
+                               (file-name-nondirectory buffer-file-name)))))))))
 
 (defun metapost-next-error ()
   "This command will try to find the first emergency stop in the
@@ -215,29 +245,26 @@ error location."
               (concat
                "*metapost: " (file-name-nondirectory
                               (shell-quote-argument buffer-file-name)) "*"))
-             (mp-output-begin-pattern "This is MetaPost.*")
-             (mp-output-error-begin-pattern "! Emergency stop.")
-             (mp-output-error-line-pattern "l\.\\([[:digit:]]+\\)")
+             (mp-output-error-begin-pattern "^!")
+             (mp-output-error-line-pattern "^l\.\\([[:digit:]]+\\)")
              (old-buffer (current-buffer)))
         (switch-to-buffer mp-output-buffer)
         (end-of-buffer)
-        (if (re-search-backward mp-output-begin-pattern nil t 1)
-            (if (re-search-forward mp-output-error-begin-pattern nil t 1)
-                (progn (re-search-forward mp-output-error-line-pattern nil t 1)
-                       (let* ((error-line-start (match-beginning 1))
-                              (error-line-end (match-end 1)))
-                         (if (and error-line-start error-line-end)
-                             (let* ((line-no
-                                     (string-to-int
-                                      (metapost-mode+-strchomp
-                                       (buffer-substring error-line-start error-line-end)))))
-                               (switch-to-buffer old-buffer)
-                               (goto-line line-no)
-                               (switch-to-buffer-other-window mp-output-buffer)
-                               (switch-to-buffer-other-window old-buffer))
-                           (message "Oops! Somehow I failed to locate the error line, T_T."))))
-              (message "Oops! Seems that there is no error line given, weried *_^. "))
-          (message "Oops! Seems that the metapost compliation output has been messed up *_*. ")))))
+        (if (re-search-backward mp-output-error-begin-pattern nil t 1)
+            (progn (re-search-forward mp-output-error-line-pattern nil t 1)
+                   (let* ((error-line-start (match-beginning 1))
+                          (error-line-end (match-end 1)))
+                     (if (and error-line-start error-line-end)
+                         (let* ((line-no
+                                 (string-to-int
+                                  (metapost-mode+-strchomp
+                                   (buffer-substring error-line-start error-line-end)))))
+                           (switch-to-buffer old-buffer)
+                           (goto-line line-no)
+                           (switch-to-buffer-other-window mp-output-buffer)
+                           (switch-to-buffer-other-window old-buffer))
+                       (message "Oops! Somehow I failed to locate the error line, T_T."))))
+          (message "Oops! Seems that there is no error line given, weried *_^. ")))))
 
 ;;;
 
