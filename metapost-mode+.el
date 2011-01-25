@@ -11,6 +11,8 @@
 
 ;;; Version History
 
+;; v0.1.3 -- Detect the latex labels and prompt user to add latex
+;;           label support.
 ;; v0.1.2 -- Error detection and notification after compiling .mp file.
 ;;         And C-c ` to jump to the error location.
 ;; v0.1.1 -- metapost with LaTeX now works. With inspriation from Troy
@@ -21,7 +23,6 @@
 ;;; ToDo List
 
 ;; - Give some notification when result is empty figure
-;; - Detect the latex labels and prompt user to add latex label support
 
 ;;; Requirements:
 
@@ -135,6 +136,19 @@ endfig;\n\n")
     (goto-char old-point)
     (if detected t nil)))
 
+(defun metapost-detect-latex-usage ()
+  (let* ((old-point (point))
+         (latex-pattern1 "btex")
+         (latex-pattern2 "etex")
+         (detected nil))
+    (goto-char 0)
+    (setq detected (search-forward latex-pattern1 nil t))
+    (if (not detected)
+        (progn (goto-char 0)
+               (setq detected (search-forward latex-pattern2 nil t))))
+    (goto-char old-point)
+    detected))
+
 (defun metapost-prepare-command (latex-mode)
       metapost-mode+-prog-mpost)
 
@@ -222,7 +236,14 @@ The preview figure is smartly deteced by
 ``metapost-locate-figure-no''."
   (interactive)
   (setq ok-to-preview t)
-  (if (buffer-modified-p)
+  (if (metapost-detect-latex-usage)
+      (if (metapost-detect-latex-mode)
+          t
+        (if (y-or-n-p "LaTeX label usage deteced without supporting header, add one?")
+            (metapost-insert-latex-header)
+          (setq ok-to-preview nil))))
+  (if (and ok-to-preview
+           (buffer-modified-p))
       (if (y-or-n-p (format "Save %s to preview the figure?" (buffer-file-name)))
           (save-buffer)
         (setq ok-to-preview nil)))
