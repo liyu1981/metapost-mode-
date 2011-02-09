@@ -11,6 +11,7 @@
 
 ;;; Version History
 
+;; v0.1.4 -- Give some notification when epstopdf failed.
 ;; v0.1.3 -- Detect the latex labels and prompt user to add latex
 ;;           label support.
 ;; v0.1.2 -- Error detection and notification after compiling .mp file.
@@ -22,7 +23,7 @@
 
 ;;; ToDo List
 
-;; - Give some notification when result is empty figure
+;; - 
 
 ;;; Requirements:
 
@@ -68,6 +69,10 @@
 (defvar metapost-mode+-goto-next-error-auto
   t
   "Whether goto next error after a compliation failure.")
+
+(defvar metapost-mode+-who-failed
+  "mpost"
+  "Which program has failed.")
 
 ;;;; metapost-mode+ Keymap
 
@@ -222,7 +227,23 @@ to pdf, and then turn on ``doc-view-mode'' to show it."
                (set-buffer-modified-p nil)
                (toggle-read-only)
                (doc-view-mode)
-               (switch-to-buffer-other-window metapost-mode+-current-source-buffer)))))
+               (switch-to-buffer-other-window metapost-mode+-current-source-buffer))
+      (progn (setq metapost-mode+-who-failed "epstopdf")
+             (message
+              (format "metapost preview: failed in converting %s. C-c ` to jump to error preview buffer."
+                      (file-name-nondirectory curbuf-figure-name)))))))
+
+(defun metapost-next-epstopdf-error ()
+  ;;(interactive)
+  (let* ((curbuf-fname-full (shell-quote-argument buffer-file-name))
+         (preview-buffer
+          (format "*metapost-preview: %s*" (file-name-nondirectory curbuf-fname-full)))
+         (epstopdf-output-error-line-pattern "^!!! Error:")
+         (old-buffer (current-buffer)))
+    (switch-to-buffer-other-window preview-buffer)
+    (end-of-buffer)
+    (re-search-backward epstopdf-output-error-line-pattern)
+    (switch-to-buffer-other-window old-buffer)))
 
 (defun metapost-next ()
   "The universal command to compile and preview the editing .mp file.
@@ -261,15 +282,16 @@ The preview figure is smartly deteced by
                 (progn (message (format "metapost: compile of %s failed."
                                         (file-name-nondirectory buffer-file-name)))
                        (metapost-next-error))
-              (message (format "metapost: compile of %s failed. C-c ` to jump to error."
-                               (file-name-nondirectory buffer-file-name)))))))))
+              (progn (setq metapost-mode+-who-failed "mpost")
+                     (message (format "metapost: compile of %s failed. C-c ` to jump to error."
+                                      (file-name-nondirectory buffer-file-name))))))))))
 
-(defun metapost-next-error ()
+(defun metapost-next-mpost-error ()
   "This command will try to find the first emergency stop in the
 output of last compliation of editing .mp file, extract the error
 infomation (i.e., error line no), and move your cursor to the
 error location."
-  (interactive)
+  ;;(interactive)
   (if metapost-mode+-last-compiliation-failed
       (let* ((mp-output-buffer
               (concat
@@ -295,6 +317,13 @@ error location."
                            (switch-to-buffer-other-window old-buffer))
                        (message "Oops! Somehow I failed to locate the error line, T_T."))))
           (message "Oops! Seems that there is no error line given, weried *_^. ")))))
+
+(defun metapost-next-error ()
+  (interactive)
+  (if (string= metapost-mode+-who-failed "mpost")
+      (metapost-next-mpost-error)
+    (if (string= metapost-mode+-who-failed "epstopdf")
+        (metapost-next-epstopdf-error))))
 
 ;;;
 
