@@ -1,4 +1,4 @@
-overview
+Overview
 ========
 
 metapost-mode+.el is an extension to old metapost-mode.el in GNU Emacs. It will add following new features to metapost-mode:
