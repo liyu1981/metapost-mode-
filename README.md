@@ -35,3 +35,9 @@ Feedback and Suggestion
 =======================
 
 Feel free to give me feedback and suggestion on github or emacswiki, or via the email in source.
+
+License
+=======
+
+Thanks @johanvts to remind me this. But now it is under MIT license.
+
