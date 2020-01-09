@@ -7,7 +7,7 @@
 ;; Compatibility: GNU Emacs 23.2 ~ newer
 
 ;; This file is NOT part of GNU Emacs. 
-;; This file is licensed under GPLv3.
+;; This file is licensed under MIT.
 
 ;;; Version History
 
