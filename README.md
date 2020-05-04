@@ -3,7 +3,7 @@ Overview
 
 metapost-mode+.el is an extension to old metapost-mode.el in GNU Emacs. It will add following new features to metapost-mode:
 
-![screenshot](http://www.comp.hkbu.edu.hk/~yli/uploads/Code/mp-screenshot.png "Screenshot")
+![screenshot](https://github.com/liyu1981/metapost-mode-/raw/master/mp-screenshot.png "Screenshot")
 
 
 * Compile the .mp file and preview the results smartly by C-c C-c.
